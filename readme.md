@@ -76,16 +76,16 @@ or synthetic NASA-like data (runs without any download needed).*
 | Transformer | 0.024 | 0.031 | 0.91 | 5.3s |
 
 ### Training output
-![Training output](assets/screenshots/training_output.png)
+![Training output](screenshots/training_output.png)
 
 ### FastAPI prediction endpoint
-![FastAPI docs](assets/screenshots/fastapi_docs.png)
+![FastAPI docs](screenshots/fastapi_docs.png)
 
 ### Streamlit dashboard
-![Streamlit dashboard](assets/screenshots/streamlit_dashboard.png)
+![Streamlit dashboard](screenshots/streamlit_dashboard.png)
 
 ### Drift monitoring report
-![Drift report](assets/screenshots/drift_report.png)
+![Drift report](screenshots/drift_report.png)
 
 LSTM achieves the best accuracy due to its ability to capture long-range
 dependencies in the degradation curve. Trained on Mac M2 (MPS) in 8.2 seconds.
