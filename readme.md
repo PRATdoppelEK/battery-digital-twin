@@ -2,15 +2,20 @@
 
 End-to-end MLOps pipeline for battery **State-of-Health (SOH) prediction**
 combining battery domain expertise with production ML engineering.
-Trains LSTM/GRU/Transformer models on real battery cycle data, serves predictions
+Trains LSTM/GRU/Transformer models on battery cycle data (synthetic NASA-like by default,
+real NASA PCoE files supported), serves predictions
 via a REST API, monitors for data drift with Evidently, and deploys with
 Docker and Kubernetes.
 
 ---
 
+> **📌 About this repo:** This is a showcase repo — write-up, architecture, and results only. The full implementation lives in a private core repo (kept private to protect the code and as a backup) and is available for a live walkthrough on request, e.g. in an interview.
+
+---
+
 ## Project overview
 
-A digital twin that mirrors the degradation behaviour of a real lithium-ion battery —
+A digital twin that mirrors the degradation behaviour of a lithium-ion battery —
 predicting SOH from cycle features, forecasting remaining useful life, and alerting
 when incoming data drifts away from the training distribution.
 
@@ -64,8 +69,9 @@ NASA PCoE Battery Data (.mat)
 | GRU | 2-layer GRU → Dropout → Dense | 0.021 | 0.027 | 0.92 |
 | Transformer | Encoder + positional embed → Dense | 0.024 | 0.031 | 0.91 |
 
-*Evaluated on held-out test set. Dataset: NASA PCoE Battery Dataset (B0005–B0018)
-or synthetic NASA-like data (runs without any download needed).*
+*Evaluated on 282 held-out test sequences of the synthetic NASA-like dataset
+(2,000 cycles, 4 cells; train 1,316 / val 282 / test 282). Real NASA PCoE files
+(B0005–B0018) are supported but were not used for these numbers.*
 
 ---
 
@@ -88,7 +94,8 @@ or synthetic NASA-like data (runs without any download needed).*
 ![Drift report](screenshots/drift_report.png)
 
 LSTM achieves the best accuracy due to its ability to capture long-range
-dependencies in the degradation curve. Trained on Mac M2 (MPS) in 8.2 seconds.
+dependencies in the degradation curve. Trained on Mac M2 (MPS) in 8.7 seconds
+(early stopping at epoch 34).
 
 Drift monitoring results (PSI-based, simulated production scenario):
 
@@ -318,8 +325,8 @@ SOH = 1.0 at beginning of life, degrades toward 0.80 (end-of-life threshold).
 Below 0.80, the cell can no longer reliably deliver its rated performance.
 
 **Digital twin:** A live model that mirrors a physical asset's state in real time.
-The twin ingests cycle data from a BMS via REST API and maintains a continuously
-updated SOH estimate and remaining useful life forecast.
+The twin accepts cycle data via REST API (designed for BMS input) and returns
+an SOH estimate and remaining useful life forecast.
 
 **Sequence modelling:** Each prediction uses a sliding window of the last 30 cycles.
 Features capture voltage plateau shape, thermal behaviour, resistance growth,
