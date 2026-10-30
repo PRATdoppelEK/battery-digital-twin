@@ -65,21 +65,19 @@ NASA PCoE Battery Data (.mat)
 
 | Model | Architecture | Test MAE | Test RMSE | Test R² |
 |-------|-------------|---------|----------|---------|
-| LSTM | 2-layer LSTM → Dropout → Dense | 0.00805 | 0.01575 | 0.9620 |
-| GRU | 2-layer GRU → Dropout → Dense | 0.021 | 0.027 | 0.92 |
-| Transformer | Encoder + positional embed → Dense | 0.024 | 0.031 | 0.91 |
+| LSTM | 2-layer LSTM → Dropout → Dense | re-run pending | | |
+| GRU | 2-layer GRU → Dropout → Dense | re-run pending | | |
+| Transformer | Encoder + positional embed → Dense | re-run pending | | |
 
-*Evaluated on 282 held-out test sequences of the synthetic NASA-like dataset
-(2,000 cycles, 4 cells; train 1,316 / val 282 / test 282). Real NASA PCoE files
-(B0005–B0018) are supported but were not used for these numbers.*
+> **Pipeline corrected (Oct 2026).** The first version split shuffled 30-cycle windows at random
+> (neighbouring windows share 29 cycles, so test windows were near-copies of training windows) and
+> used three inputs that encode the target (coulombic efficiency, discharge time, capacity fade rate).
+> The split is now **by battery** — train B1000–B1001, validate B1002, test the unseen B1003 — and
+> the model uses 13 non-leaking features. Earlier numbers (LSTM R² 0.962) are withdrawn; re-run with
+> `python run_pipeline.py --mode train`. The screenshots below are from the earlier run.
 
----
-
-| Model | MAE | RMSE | R² | Duration |
-|-------|-----|------|----|----------|
-| LSTM | 0.00805 | 0.01575 | 0.9620 | 8.7s |
-| GRU | 0.021 | 0.027 | 0.92 | 6.1s |
-| Transformer | 0.024 | 0.031 | 0.91 | 5.3s |
+*Synthetic NASA-like dataset: 2,000 cycles, 4 cells → 940 train / 470 val / 470 test windows.
+Real NASA PCoE files (B0005–B0018) are supported.*
 
 ### Training output
 ![Training output](screenshots/training_output.png)
@@ -93,9 +91,7 @@ NASA PCoE Battery Data (.mat)
 ### Drift monitoring report
 ![Drift report](screenshots/drift_report.png)
 
-LSTM achieves the best accuracy due to its ability to capture long-range
-dependencies in the degradation curve. Trained on Mac M2 (MPS) in 8.7 seconds
-(early stopping at epoch 34).
+Model comparison will be updated after the re-run on the battery-wise split.
 
 Drift monitoring results (PSI-based, simulated production scenario):
 
@@ -329,8 +325,9 @@ The twin accepts cycle data via REST API (designed for BMS input) and returns
 an SOH estimate and remaining useful life forecast.
 
 **Sequence modelling:** Each prediction uses a sliding window of the last 30 cycles.
-Features capture voltage plateau shape, thermal behaviour, resistance growth,
-and coulombic efficiency — all physics-grounded indicators of internal degradation.
+Features capture voltage behaviour, thermal behaviour, resistance and resistance growth, and
+cycle count. Coulombic efficiency, discharge time and capacity fade rate are still monitored for
+drift but are not model inputs, because they encode SOH directly.
 
 **Data drift monitoring:** The Evidently detector compares incoming production data
 against the training distribution. When drift exceeds 15% of features, an alert fires
