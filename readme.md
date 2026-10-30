@@ -65,16 +65,26 @@ NASA PCoE Battery Data (.mat)
 
 | Model | Architecture | Test MAE | Test RMSE | Test R² |
 |-------|-------------|---------|----------|---------|
-| LSTM | 2-layer LSTM → Dropout → Dense | re-run pending | | |
-| GRU | 2-layer GRU → Dropout → Dense | re-run pending | | |
-| Transformer | Encoder + positional embed → Dense | re-run pending | | |
+| Ridge regression (baseline) | Linear, on 30-cycle window mean | 0.0079 | 0.0093 | 0.980 |
+| Random Forest (baseline) | 300 trees, on 30-cycle window mean | 0.0074 | 0.0091 | 0.981 |
+| LSTM | 2-layer LSTM → Dropout → Dense | 0.0149 | 0.0191 | 0.916 |
+| GRU | 2-layer GRU → Dropout → Dense | 0.0098 | 0.0117 | 0.969 |
+| Transformer | Encoder + positional embed → Dense | 0.0150 | 0.0180 | 0.926 |
 
 > **Pipeline corrected (Oct 2026).** The first version split shuffled 30-cycle windows at random
 > (neighbouring windows share 29 cycles, so test windows were near-copies of training windows) and
 > used three inputs that encode the target (coulombic efficiency, discharge time, capacity fade rate).
 > The split is now **by battery** — train B1000–B1001, validate B1002, test the unseen B1003 — and
-> the model uses 13 non-leaking features. Earlier numbers (LSTM R² 0.962) are withdrawn; re-run with
-> `python run_pipeline.py --mode train`. The screenshots below are from the earlier run.
+> the model uses 13 non-leaking features. Earlier numbers (LSTM R² 0.962) are withdrawn.
+> Reproduce with `python run_pipeline.py --mode train --model lstm|gru|transformer` and
+> `python baselines.py`. The screenshots below are from the earlier run.
+
+**Finding:** on the unseen battery, none of the deep models beats a linear baseline; the GRU comes
+closest. The reason is the synthetic generator: mean discharge voltage is a linear function of SOH
+plus small noise, so averaging it over 30 cycles nearly reads SOH off directly, and a linear model
+is enough. This dataset validates the MLOps pipeline (split, serving, drift monitoring), not the
+choice of a sequence model. Real NASA PCoE cells, where voltage is not a clean proxy for SOH, are
+the test that matters. Single seed per model.
 
 *Synthetic NASA-like dataset: 2,000 cycles, 4 cells → 940 train / 470 val / 470 test windows.
 Real NASA PCoE files (B0005–B0018) are supported.*
@@ -116,6 +126,7 @@ Drift simulated by shifting temperature +7°C and resistance +25%.*
 battery-digital-twin/
 │
 ├── run_pipeline.py                 # Single entry point — train | serve | monitor | all
+├── baselines.py                    # Ridge / Random Forest baselines on the same split
 │
 ├── src/
 │   ├── data/
@@ -198,6 +209,7 @@ Compare all three architectures:
 python run_pipeline.py --mode train --model lstm
 python run_pipeline.py --mode train --model gru
 python run_pipeline.py --mode train --model transformer
+python baselines.py          # linear and tree baselines on the same split
 ```
 
 Start the prediction API:
